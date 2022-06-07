@@ -1,0 +1,898 @@
+<!--
+Copyright 2019 Google LLC. All Rights Reserved.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta charset="UTF-8">
+<meta name="google" content="notranslate" />
+<title>Tensorflow Web</title>
+<link href="https://fonts.googleapis.com/css?family=Roboto" rel="stylesheet">
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+
+<body>
+  <h1>Model Training</h1>
+    <main>
+    <div id="topbar"></div>
+    <div id="info"></div>
+    <!--<div id="background"></div>-->
+    <!--<p><b>Title:</b> <span id="title"></span></p>-->
+    <!--<p><b>Artist:</b> <span id="artist"></span></p>-->
+    <!--<p><b>Album:</b> <span id="album"></span></p>-->
+    <img id="picture" src="assets/none.png" alt= "picture extracted from ID3" />
+    <canvas></canvas>
+    
+
+    <div id="app">
+      <div class="controls">
+        <div>
+          <label>
+            <input type="checkbox" v-model="smooth" :disabled="type === 'webaudio'">
+            Smooth
+          </label>
+        </div>
+        <div>
+          <label>
+            <input name="type" type="radio" value="custom" v-model="type"> CustomFFT
+          </label>
+
+          <label>
+            <input name="type" type="radio" value="webaudio" v-model="type"> WebAudio
+          </label>
+        </div>
+
+        <div>
+          <input type="file"  @change="onFileChange" multiple name="upload">
+        </div>
+
+        <div class="controls__right">
+          <button v-if="file != null && paused" @click="play">
+            Play
+          </button>
+          <button v-if="file != null && !paused" @click="pause">
+            Pause
+          </button>
+          <button v-if="file != null" @click="reload">
+            Next
+          </button>
+          <button v-if="file != null" @click="volumeup">
+            音量+
+          </button>
+          <button v-if="file != null" @click="volumedown">
+            音量-
+          </button>
+          <br>
+          <input type="search" name="voice" id="voice-txt" />
+          <button id="start-btn">开始识别</button>
+        </div>
+      </div>
+    </div>
+  </main>
+  <section class="top-section">
+
+<!-- Hyper params. -->
+    <div class="left-dropdown-container">
+
+      <!-- Learning rate -->
+      <div class="dropdown-wrapper">
+        <label>LEARNING RATE</label>
+        <div class="dropdown">
+
+          <!-- <select id="learningRate">
+            <option value="0.00001">0.00001</option>
+            <option selected value="0.0001">0.0001</option>
+            <option value="0.01">0.001</option>
+            <option value="0.03">0.003</option>
+          </select>
+          <img class="vertically-center" src="assets/rectangle-5.svg" /> -->
+
+
+          <div class="custom-dropdown" id="learningRate-dropdown">
+            <div id="learningRate" class="custom-select"></div>
+            <img class="vertically-center" src="assets/rectangle-5.svg" />
+          </div>
+          <div id="learningRate-dropdown-list" class="custom-option-list hide" dropdownID = "learningRate">
+            <div class="custom-option"><span class="icon"><img src="assets/rectangle-6.png"/></span>0.00001</div>
+            <div class="custom-option selected"><span class="icon"><img src="assets/rectangle-6.png"/></span>0.0001</div>
+            <div class="custom-option"><span class="icon"><img src="assets/rectangle-6.png"/></span>0.001</div>
+            <div class="custom-option"><span class="icon"><img src="assets/rectangle-6.png"/></span>0.003</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch size -->
+      <div class="dropdown-wrapper">
+        <label>BATCH SIZE</label>
+        <div class="dropdown">
+            <!-- <select id="batchSizeFraction">
+              <option value="0.05">0.05</option>
+              <option value="0.1">0.1</option>
+              <option selected value="0.4">0.4</option>
+              <option value="1">1</option>
+          </select>
+          <img class="vertically-center" src="assets/rectangle-5.svg" /> -->
+
+
+          <div class="custom-dropdown" id="batchSizeFraction-dropdown">
+            <div id="batchSizeFraction" class="custom-select"></div>
+            <img class="vertically-center" src="assets/rectangle-5.svg" />
+          </div>
+          <div id="batchSizeFraction-dropdown-list" class="custom-option-list hide" dropdownID = "batchSizeFraction">
+            <div class="custom-option"><span class="icon"><img src="assets/rectangle-6.png"/></span>0.05</div>
+            <div class="custom-option"><span class="icon"><img src="assets/rectangle-6.png"/></span>0.1</div>
+            <div class="custom-option selected"><span class="icon"><img src="assets/rectangle-6.png"/></span>0.4</div>
+            <div class="custom-option"><span class="icon"><img src="assets/rectangle-6.png"/></span>1</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Epochs -->
+      <div class="dropdown-wrapper">
+        <label>EPOCHS</label>
+        <div class="dropdown">
+          <!-- <select id="epochs">
+            <option value="10">10</option>
+            <option selected value="20">20</option>
+            <option value="40">40</option>
+          </select>
+          <img class="vertically-center" src="assets/rectangle-5.svg" /> -->
+
+          <div class="custom-dropdown" id="epochs-dropdown">
+            <div id="epochs" class="custom-select"></div>
+            <img class="vertically-center" src="assets/rectangle-5.svg" />
+          </div>
+          <div id="epochs-dropdown-list" class="custom-option-list hide" dropdownID = "epochs">
+            <div class="custom-option"><span class="icon"><img src="assets/rectangle-6.png"/></span>10</div>
+            <div class="custom-option selected"><span class="icon"><img src="assets/rectangle-6.png"/></span>20</div>
+            <div class="custom-option"><span class="icon"><img src="assets/rectangle-6.png"/></span>40</div>
+          </div>
+
+
+        </div>
+      </div>
+
+      <!-- Hidden units -->
+      <div class="dropdown-wrapper">
+        <label>HIDDEN UNITS</label>
+        <div class="dropdown">
+          <!-- <select id="dense-units">
+            <option value="10">10</option>
+            <option selected value="100">100</option>
+            <option value="200">200</option>
+          </select>
+          <img class="vertically-center" src="assets/rectangle-5.svg" /> -->
+
+
+          <div class="custom-dropdown" id="dense-units-dropdown">
+            <div id="dense-units" class="custom-select"></div>
+            <img class="vertically-center" src="assets/rectangle-5.svg" />
+          </div>
+          <div id="dense-units-dropdown-list" class="custom-option-list hide" dropdownID = "dense-units">
+            <div class="custom-option"><span class="icon"><img src="assets/rectangle-6.png"/></span>10</div>
+            <div class="custom-option selected"><span class="icon"><img src="assets/rectangle-6.png"/></span>100</div>
+            <div class="custom-option"><span class="icon"><img src="assets/rectangle-6.png"/></span>200</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="webcam-container">
+        <div class="webcam-outer-wrapper" id="webcam-outer-wrapper">
+          <div id="webcam-inner-wrapper" class="webcam-inner-wrapper center">
+            <div id="no-webcam" class="hide">
+              <img class="emoji" src="assets/icn_emoji.png"/>
+              <p>No webcam found.</p>
+              <p>You will need a webcam device to use this demo.</p>
+            </div>
+            <video autoplay playsinline muted width="224px" height="224px" id="webcam" ></video>
+          </div>
+      </div>
+    </div>
+
+    <div class="right-button-container">
+
+      <div>
+        <!-- Train Model -->
+        <button id="train" class="train-button disabled"><span id="train-status">TRAIN MODEL</span></button>
+      </div>
+
+      <div>
+        <!-- Test Model -->
+        <button class="test-button disabled" id="predict">TEST</button>
+        <button class="stop-button hide" id="stop-predict">STOP</button>
+      </div>
+
+      <div>
+        <!-- Download Model -->
+        <button id="download-model" class="download-button disabled" download >DOWNLOAD MODEL</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- User Help  -->
+  <div id="user-help" style="visibility:hidden">
+    <img src="assets/shape.svg" /><span id="user-help-text"></span>
+  </div>
+
+  <section id="bottom-section" class="bottom-section">
+    <div class="control-button-wrapper">
+      <div class="control-inner-wrapper" id="up-button">
+      <div class="control-button"  id="up">
+        <div class="control-icon center" id="up-icon"><div><img src="assets/up.svg"/></div>UP</div>
+        <div class="add-icon invisible" id="up-add-icon">
+          <img class="center" src="assets/icon.svg"/>
+        </div>
+        <canvas width="224" height="224" class="thumb hide" id="up-thumb"></canvas>
+      </div>
+      </div>
+      <div class="sample-count" id="up-total"><img src="assets/invalid-name.svg"/></div>
+
+    </div>
+    <div class="control-button-wrapper">
+      <div class="control-inner-wrapper" id="down-button">
+      <div class="control-button" id="down">
+        <div class="control-icon center" id="down-icon"><div><img src="assets/down.svg"/></div>DOWN</div>
+        <div class="add-icon invisible" id="down-add-icon">
+          <img class="center" src="assets/icon.svg"/></div>
+        <canvas width="224" height="224" class="thumb hide" id="down-thumb"></canvas>
+      </div>
+      </div>
+      <div class="sample-count" id="down-total"><img src="assets/invalid-name.svg"/></div>
+
+    </div>
+    <div class="control-button-wrapper">
+      <div class="control-inner-wrapper" id="left-button">
+      <div class="control-button" id="left">
+        <div class="control-icon center" id="left-icon"><div><img src="assets/left.svg"/></div>LEFT</div>
+        <div class="add-icon invisible" id="left-add-icon">
+          <img class="center" src="assets/icon.svg"/>
+        </div>
+        <canvas width="224" height="224" class="thumb hide" id="left-thumb"></canvas>
+      </div>
+    </div>
+      <div class="sample-count" id="left-total"><img src="assets/invalid-name.svg"/></div>
+
+    </div>
+    <div class="control-button-wrapper">
+      <div class="control-inner-wrapper" id="right-button">
+      <div class="control-button" id="right">
+        <div class="control-icon center" id="right-icon"><div><img src="assets/right.svg"/></div>RIGHT</div>
+        <div class="add-icon invisible" id="right-add-icon" >
+          <img class="center" src="assets/icon.svg"/>
+        </div>
+        <canvas width="224" height="224" class="thumb hide" id="right-thumb"></canvas>
+      </div>
+      </div>
+      <div class="sample-count" id="right-total"><img src="assets/invalid-name.svg"/></div>
+
+    </div>
+    <div class="control-button-wrapper">
+      <div class="control-inner-wrapper" id="leftclick-button">
+      <div class="control-button" id="leftclick">
+        <div class="control-icon center" id="leftclick-icon"><div><img src="assets/leftclick.svg"/></div>LEFT CLICK</div>
+        <div class="add-icon invisible" id="leftclick-add-icon">
+          <img class="center" src="assets/icon.svg"/>
+        </div>
+          <canvas width="224" height="224" class="thumb hide" id="leftclick-thumb"></canvas>
+      </div>
+      </div>
+      <div class="sample-count" id="leftclick-total"><img src="assets/invalid-name.svg"/></div>
+
+    </div>
+    <div class="control-button-wrapper">
+      <div class="control-inner-wrapper" id="rightclick-button">
+      <div class="control-button" id="rightclick">
+        <div class="control-icon center" id="rightclick-icon"><div><img src="assets/rightclick.svg"/></div>RIGHT CLICK</div>
+        <div class="add-icon invisible" id="rightclick-add-icon">
+          <img class="center" src="assets/icon.svg"/>
+        </div>
+        <canvas width="224" height="224" class="thumb hide" id="rightclick-thumb"></canvas>
+      </div>
+      </div>
+      <div class="sample-count" id="rightclick-total"><img src="assets/invalid-name.svg"/></div>
+
+    </div>
+    <div class="control-button-wrapper">
+      <div class="control-inner-wrapper" id="scrollup-button">
+      <div class="control-button" id="scrollup">
+        <div class="control-icon center" id="scrollup-icon"><div><img src="assets/scrollup.svg"/></div>SCROLL UP</div>
+        <div class="add-icon invisible" id="scrollup-add-icon" >
+          <img class="center" src="assets/icon.svg"/>
+        </div>
+        <canvas width="224" height="224" class="thumb hide" id="scrollup-thumb"></canvas>
+      </div>
+      </div>
+      <div class="sample-count" id="scrollup-total"><img src="assets/invalid-name.svg"/></div>
+
+    </div>
+    <div class="control-button-wrapper">
+      <div class="control-inner-wrapper" id="scrolldown-button">
+      <div class="control-button" id="scrolldown">
+        <div class="control-icon center" id="scrolldown-icon"><div><img src="assets/scrolldown.svg"/></div>SCROLL DOWN</div>
+        <div class="add-icon invisible" id="scrolldown-add-icon">
+          <img class="center" src="assets/icon.svg"/>
+        </div>
+        <canvas width="224" height="224" class="thumb hide" id="scrolldown-thumb"></canvas>
+      </div>
+      </div>
+      <div class="sample-count" id="scrolldown-total"><img src="assets/invalid-name.svg"/></div>
+
+    </div>
+  </section>
+</body>
+<!-- Load music的js -->
+<script type="module">
+    var o = 0
+    const hamming = (i,N) => {
+      return 0.54 - 0.46 * Math.cos(6.283185307179586*i/(N-1))
+    }
+
+    const applyWindow = (signal, func) => {
+      var i, n = signal.length, args=[0,n]
+
+      for(i=n-1; i>=0; i--) {
+        args[0] = i
+        signal[i] *= func.apply(null,args)
+      }
+
+      return signal;
+    }
+
+    class Complex {
+      constructor(real, imag) {
+        this.real = real
+        this.imag = imag
+      }
+
+      abs() {
+        return Math.sqrt(this.real * this.real + this.imag * this.imag)
+      }
+    }
+
+    // NOTE: samples's length must be a power of two
+    const rfft = (samples) => {
+      const f = new FFTJS(samples.length)
+      const out = f.createComplexArray()
+
+      const N = samples.length / 10 + 1
+
+      f.realTransform(out, samples)
+
+      const value = []
+
+      for(let i = 0; i < N; i++) {
+        value[i] = new Complex(out[2*i+0], out[2*i+1])
+      }
+
+      return value
+    }
+
+    const rfftfreq = (sampleCount, sampleRate) => {
+      const N = sampleCount / 2 + 1
+      const freq = []
+      const delta = sampleRate / 2 / (N - 1)
+
+      for(let i = 0; i < N; i++) {
+        freq.push(delta * i)
+      }
+
+      return freq
+    }
+
+    const loadAudio = async (ctx, file) => {
+      const ab = await file.arrayBuffer()
+      return ctx.decodeAudioData(ab)
+    }
+
+    const W = 720
+    const H = 720
+
+    const canvas = document.getElementsByTagName('canvas')[0]
+    const ctx = canvas.getContext("2d")
+    
+
+    // values should be of range 0 ~ 1
+    const draw = (spectrum) => {
+      ctx.clearRect(0, 0, W, H)
+      const barWidth = (W / spectrum.length).toFixed(1)
+
+      for(let i = 0; i < spectrum.length; i++) {
+        const v = spectrum[i]
+        const x = i * barWidth
+        const height = v * H
+        //const y = height
+
+        const hue = (i / spectrum.length) * 360
+        ctx.fillStyle = `hsl(${hue}, 95%, 59%)`
+        ctx.fillRect(height-80, x, -height, barWidth)
+      }
+    }
+
+    const FFT_SIZE = 2048
+    const smoothConstantDown = 0.08
+    const smoothConstantUp = 0.8
+    let lastY
+    let audioCtx
+
+    window.vm = new Vue({
+      el: "#app",
+
+      data() {
+        return {
+          file: null,
+          type: "custom",
+          paused: true,
+          smooth: true,
+        }
+      },
+
+      mounted() {
+        this.startOffset = 0
+        this.startTime = null
+        this.audioBuffer = null
+        this.source = null
+        this.analyzer = null
+        this.gainNode = null
+        this.reqID = null
+        this.freqs = null
+
+        const canvas = document.getElementsByTagName('canvas')[0]
+        canvas.width = W
+        canvas.height = H
+
+        window.addEventListener("keydown", evt => {
+          if(evt.code === "Space") {
+            this.togglePlay()
+          }
+        })
+      },
+
+      methods: {
+        togglePlay() {
+          if(this.file == null) return
+
+          if(this.paused) {
+            this.play()
+          } else {
+            this.pause()
+          }
+        },
+
+        async play() {
+            
+            
+          
+          var file = this.file[0][o],
+          url = file.urn || file.name;
+          
+          ID3.loadTags(url, function() {
+          var tags = ID3.getAllTags(url);
+          document.getElementById('info').innerHTML = '<b>'+tags.title+'</b>'+'<br>'+tags.artist || "";
+          //document.getElementById('artist').textContent = tags.artist || "";
+          //document.getElementById('album').textContent = tags.album || "";
+          var image = tags.picture;
+          if (image) {
+            var base64String = "";
+            for (var i = 0; i < image.data.length; i++) {
+                base64String += String.fromCharCode(image.data[i]);
+            }
+            var base64 = "data:" + image.format + ";base64," + window.btoa(base64String);
+            document.getElementById('picture').style.display = "";
+            document.getElementById('picture').setAttribute('src',base64);
+          } else {
+            document.getElementById('picture').setAttribute('src','assets/default.jpg');
+          }
+          }, {
+          tags: ["title","artist","album","picture"],
+          dataReader: ID3.FileAPIReader(file)
+          });
+        //   function showTags(url) {
+        //   var tags = ID3.getAllTags(url);
+        //   console.log(tags);
+        //   document.getElementById('title').textContent = tags.title || "";
+        //   document.getElementById('artist').textContent = tags.artist || "";
+        //   document.getElementById('album').textContent = tags.album || "";
+        //   var image = tags.picture;
+        //   if (image) {
+        //     var base64String = "";
+        //     for (var i = 0; i < image.data.length; i++) {
+        //         base64String += String.fromCharCode(image.data[i]);
+        //     }
+        //     var base64 = "data:" + image.format + ";base64," +
+        //             window.btoa(base64String);
+        //     document.getElementById('picture').setAttribute('src',base64);
+        //   } else {
+        //     document.getElementById('picture').style.display = "none";
+        //   }}
+          
+          audioCtx = new AudioContext()
+          
+
+          
+          this.audioBuffer = await loadAudio(audioCtx, this.file[0][o])
+          this.analyser = audioCtx.createAnalyser()
+          this.analyser.smoothingTimeConstant = 0.8
+          this.analyser.fftSize = FFT_SIZE
+          this.freqs = new Uint8Array(this.analyser.frequencyBinCount)
+          
+
+          this.paused = false
+          this.startTime = audioCtx.currentTime
+
+
+          this.source = audioCtx.createBufferSource()
+          this.source.buffer = this.audioBuffer
+          //this.source.playbackRate.value = 0.5
+          this.source.connect(this.analyser)
+          
+          //调音量
+          this.gainNode = audioCtx.createGain();
+          //console.log(this.gainNode)
+          this.gainNode.gain.value = 0.5;//音量大小
+          //this.gainNode.connect(this.analyser);
+          
+          
+          this.analyser.connect(this.gainNode)
+          this.gainNode.connect(audioCtx.destination);
+          //document.getElementById('info').innerHTML = '正在播放：'+this.file[0][o]['name']
+          this.source.start(0, this.startOffset % this.audioBuffer.duration)
+
+          this.reqID = requestAnimationFrame(this.update)
+        },
+
+        pause() {
+          this.paused = true
+          this.source.stop()
+          this.startOffset += audioCtx.currentTime - this.startTime
+          console.log(audioCtx.currentTime - this.startTime)
+          //console.log(this.startTime)
+          cancelAnimationFrame(this.reqID)
+        },
+
+        async reload() {
+            
+          o = o+1
+          if (o==this.file[0].length){o=0}    
+          var file = this.file[0][o],
+          url = file.urn || file.name;
+          
+          ID3.loadTags(url, function() {
+          var tags = ID3.getAllTags(url);
+          document.getElementById('info').innerHTML = '<b>'+tags.title+'</b>'+'<br>'+tags.artist || "";
+          //document.getElementById('artist').textContent = tags.artist || "";
+          //document.getElementById('album').textContent = tags.album || "";
+          var image = tags.picture;
+          if (image) {
+            var base64String = "";
+            for (var i = 0; i < image.data.length; i++) {
+                base64String += String.fromCharCode(image.data[i]);
+            }
+            var base64 = "data:" + image.format + ";base64," + window.btoa(base64String);
+            document.getElementById('picture').style.display = "";
+            document.getElementById('picture').setAttribute('src',base64);
+          } else {
+            document.getElementById('picture').style.display = "none";
+          }
+          }, {
+          tags: ["title","artist","album","picture"],
+          dataReader: ID3.FileAPIReader(file)
+          });
+          this.source.stop()
+          cancelAnimationFrame(this.reqID)
+          audioCtx = new AudioContext()
+
+          // 创建一个XMLHttpRequest请求对象
+        //   var request = new XMLHttpRequest();
+        //   // 请求一个MP3文件
+        //   request.open('GET', '123.mp3', false);
+          // Web Audio API 固定为 "arraybuffer"
+          //request.responseType = 'arraybuffer';
+          //加载完成后解码
+        //   request.onload = function() { 
+        //       return request.response
+        //       audioCtx.decodeAudioData(request.response, function(buffer) { 
+        //         // 获得解码后的数据：buffer 
+        //         // 这里可以立即播放解码后的 buffer，也可以把 buffer 值先存起来
+        //         // 这个 playBuffer() 将在下文讲解如此实现
+        //           playBuffer(buffer);
+        //         }, function (){ 
+        //             // 这里写解码出错的处理（例如文件损坏、格式不对等） 
+        //         }); 
+        //   };
+        //   request.send(null);
+        //   if (request.status === 200) {
+        //       var tmp = Uint8Array.from(request.response, c => c.charCodeAt(0));
+        //       var tmp2 = new File(tmp,'123.mp3')
+        //       console.log(tmp2)
+        //   }
+          this.audioBuffer = await loadAudio(audioCtx, this.file[0][o])
+          this.analyser = audioCtx.createAnalyser()
+          this.analyser.smoothingTimeConstant = 0.8
+          this.analyser.fftSize = FFT_SIZE
+          this.freqs = new Uint8Array(this.analyser.frequencyBinCount)
+              
+          this.paused = false
+          this.startTime = audioCtx.currentTime
+    
+          this.source = audioCtx.createBufferSource()
+          this.source.buffer = this.audioBuffer
+
+          this.source.connect(this.analyser)
+          
+          //调音量
+          this.gainNode = audioCtx.createGain();
+          this.gainNode.gain.value = 0.5;//音量大小
+          //this.gainNode.connect(this.analyser);
+          
+          
+          this.analyser.connect(this.gainNode)
+          this.gainNode.connect(audioCtx.destination)
+          //document.getElementById('info').innerHTML = '正在播放：'+this.file[0][o]['name']
+          this.source.start(0, 0)
+          this.startOffset = 0
+    
+          this.reqID = requestAnimationFrame(this.update)
+        //   this.analyser = audioCtx.createAnalyser()
+        //   this.analyser.smoothingTimeConstant = 0.8
+        //   this.analyser.fftSize = FFT_SIZE
+        //   this.freqs = new Uint8Array(this.analyser.frequencyBinCount)
+          
+        //   this.paused = false
+        //   this.startTime = audioCtx.currentTime
+
+        //   this.source = audioCtx.createBufferSource()
+        //   this.source.buffer = this.audioBuffer
+
+        //   this.source.connect(this.analyser)
+        //   this.analyser.connect(audioCtx.destination)
+
+        //   this.source.start(0, 0)
+        //   this.startOffset = 0
+
+        //   this.reqID = requestAnimationFrame(this.update)
+        },
+
+        volumeup() {
+            this.gainNode.gain.value = this.gainNode.gain.value+0.2
+            //声音太大会失真
+            if(this.gainNode.gain.value>2){this.gainNode.gain.value = 2}
+            console.log('当前音量'+this.gainNode.gain.value)
+        },
+        
+        volumedown() {
+            this.gainNode.gain.value = this.gainNode.gain.value-0.2
+            if(this.gainNode.gain.value<0){this.gainNode.gain.value = 0}
+            console.log('当前音量'+this.gainNode.gain.value)
+        },
+
+ 
+        updateByCustomFFT() {
+          const allSamples = this.audioBuffer.getChannelData(0)
+
+          const per = ((audioCtx.currentTime - this.startTime + this.startOffset) % this.audioBuffer.duration) / this.audioBuffer.duration
+          //const per = ((audioCtx.currentTime - this.startTime) % this.audioBuffer.duration) / this.audioBuffer.duration
+
+          const startIdx = Math.floor(allSamples.length * per)
+          const endIdx = startIdx + FFT_SIZE
+
+          const samples = allSamples.slice(startIdx, endIdx)
+          const delta = FFT_SIZE - samples.length
+          if(delta > 0) {
+            const oldLength = samples.length
+            samples.length = FFT_SIZE
+            for(let i = 0; i < delta; i++) {
+              samples[oldLength + i] = 0
+            }
+          }
+
+          const fftResult = rfft(applyWindow(samples, hamming))
+          const y = fftResult.map(v => 20 * Math.log10(v.abs())).map(v => isFinite(v) ? v : 0)
+
+          // smooth
+          if(lastY != null) {
+            for(let i = 0; i < lastY.length; i++) {
+              if(y[i] < lastY[i]) {
+                lastY[i] = y[i] * smoothConstantDown + lastY[i] * (1 - smoothConstantDown)
+              } else {
+                lastY[i] = y[i] * smoothConstantUp + lastY[i] * (1 - smoothConstantUp)
+              }
+            }
+          } else {
+            lastY = y
+          }
+
+          const result = this.smooth ? lastY : y
+
+          return result.map(v => (v + 20) / 80)
+        },
+
+        updateByWebAudio() {
+          this.analyser.getByteFrequencyData(this.freqs)
+          return this.freqs.map(v => (v + 140) / 330)
+        },
+
+        update() {
+          this.reqID = requestAnimationFrame(this.update)
+
+          const freqs = this.type === "custom" ? this.updateByCustomFFT() : this.updateByWebAudio()
+
+          draw(freqs)
+        },
+
+        onFileChange(evt) {
+            this.file = [].concat(evt.target.files)
+            //this.file = evt.target.files[0]
+            //this.file1 = evt.target.files[1]
+            console.log(this.file)
+            console.log(this.file[0].length)
+        }
+      },
+    })
+    
+    //显示时间 电量
+    function time() {
+        let date = new Date();
+        let hour = date.getHours();
+        let minutes = date.getMinutes();
+        let str = '🕰️' + hour + '️:' + minutes;
+        document.getElementById("topbar").innerHTML = str;
+        let power = {}
+                navigator.getBattery().then(function (battery) {
+                    power.isCharging = battery.charging
+                    power.level = battery.level
+                    power.needChargingTime = battery.chargingTime
+                    power.elseTime = battery.dischargingTime
+                    // console.log("是否在充电? " + (battery.charging ? "Yes" : "No"));
+                    // console.log("剩余电量,最大电量就是1: " + battery.level * 100 + "%");
+                    // console.log("充满电还需要的时间(秒): " + battery.chargingTime + " seconds");
+                    // console.log("电池剩余可用时间(秒): " + battery.dischargingTime + " seconds");
+                    battery.addEventListener('chargingchange', function () {
+                        console.log("充电状态改变时触发该监听函数? " + (battery.charging ? "Yes" : "No"));
+                        power.isCharging = battery.charging
+                    });
+                    battery.addEventListener('levelchange', function () {
+                        console.log("电量改变时触发该监听函数: " + battery.level * 100 + "%");
+                        power.level = battery.level
+                    });
+                    battery.addEventListener('chargingtimechange', function () {
+                        console.log("充满还需时间改变时触发该监听函数: " + battery.chargingTime + " seconds");
+                        power.needChargingTime = battery.chargingTime
+                    });
+                    battery.addEventListener('dischargingtimechange', function () {
+                        console.log("电池剩余可用时间改变时触发该监听函数: " + battery.dischargingTime + " seconds");
+                        power.elseTime = battery.dischargingTime
+                    });
+                    let date = new Date();
+                    let hour = date.getHours();
+                    let minutes = date.getMinutes();
+                    let str1 = '🕧' + hour + '️:' + minutes;
+                    let str2 = '🔋'+Math.ceil(battery.level * 100) + "%" +(battery.charging ? "⚡" : "");
+                    document.getElementById("topbar").innerHTML = str1+'&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'+str2;
+                    // console.log(power)
+                });
+    }
+    setInterval(time,1000);
+//     setInterval(function test(){
+// 	switch(document.body.getAttribute('data-active')){
+// 	case 'up':
+// 		console.log('音量+')
+// 		break;
+// 	case 'down':
+// 		console.log('音量-')
+// 		break;
+// 	case 'left':
+// 		console.log('暂停/播放')
+// 		document.querySelector("#app > div > div.controls__right > button").click()
+// 		break;
+// 	case 'right':
+// 		console.log('next')
+// 		document.querySelector("#app > div > div.controls__right > button:nth-child(2)").click()
+// 	}
+//     },3000)
+console.log("ha")
+// 	switch(document.body.getAttribute('data-active')){
+// 	case 'up':
+// 		console.log('音量+')
+// 		break;
+// 	case 'down':
+// 		console.log('音量-')
+// 		break;
+// 	case 'left':
+// 		console.log('暂停/播放')
+// 		document.querySelector("#app > div > div.controls__right > button").click()
+// 		break;
+// 	case 'right':
+// 		console.log('next')
+// 		document.querySelector("#app > div > div.controls__right > button:nth-child(2)").click()
+// 	}
+    },7000)
+    
+</script>
+<script src="crypto-js.min.js"></script>
+<script src="voice.js"></script>
+<script>
+    window.onload = function () {
+        const voiceTxt = document.querySelector('#voice-txt');
+        const startBtn = document.querySelector('#start-btn');
+        const fixedBox = document.querySelector('#fixed-box');
+        const fixedTxt = document.querySelector('#fixed-txt');
+        const closeBtn = document.querySelector('#close-btn');
+        let times = null;
+
+        // 实例化迅飞语音听写（流式版）WebAPI
+        const voice = new Voice({
+
+            // 服务接口认证信息 注：apiKey 和 apiSecret 的长度都差不多，请要填错哦，！
+            appId: '84ed64ed',
+            apiSecret: 'N2ZiMDIwZDRmMDc0YWE5ZmMzZjVjNjBh', 
+            apiKey: '70def3bd3b3b90b238f952d3f40b5a80',
+            // 注：要获取以上3个参数，请到迅飞开放平台：https://www.xfyun.cn/services/voicedictation 【注：这是我的迅飞语音听写（流式版）每天服务量500（也就是调500次），如果你需求里大请购买服务量：https://www.xfyun.cn/services/voicedictation?target=price】
+
+            onWillStatusChange: function (oldStatus, newStatus) {
+                //可以在这里进行页面中一些交互逻辑处理：注：倒计时（语音听写只有60s）,录音的动画，按钮交互等！
+                // fixedBox.style.display = 'block';
+            },
+            onTextChange: function (text) {
+                //监听识别结果的变化
+                voiceTxt.value = text;
+                //fixedTxt.innerText = text;
+
+                // 3秒钟内没有说话，就自动关闭
+                if (text) {
+                    clearTimeout(times);
+                    times = setTimeout(() => {
+                        this.stop(); // voice.stop();
+                        //fixedBox.style.display = 'none';
+                        console.log("已停止识别")
+                    }, 3000);
+                };
+            }
+        });
+
+        // 开始识别
+        startBtn['onclick'] = function () {
+            voice.start();
+            console.log("开始识别语音")
+        };
+
+        // 关闭识别
+        // closeBtn['onclick'] = function () {
+        //     voice.stop();
+        //     fixedBox.style.display = 'none';
+        // };
+    };
+</script>
+
+<script type="text/javascript" src="./js/fft.js"></script>
+<script type="text/javascript" src="./js/vue.min.js"></script>
+<!-- Load id3.js -->
+<script src="id3-minimized.js" type="text/javascript"></script>
+<!-- Load TensorFlow.js -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
+<!--<script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>-->
+
+
+<script src="ui.js"></script>
+<script src="webcam.js"></script>
+<script src="controller_dataset.js"></script>
+<script src="index.js"></script>
+<script src="https://cdn.bootcss.com/vConsole/3.3.0/vconsole.min.js"></script>
+<script>var vConsole = new VConsole();</script>
+
+</html>
