@@ -20,7 +20,7 @@ SuspendedCenter
 - [Preview](https://81.71.127.42/)
 - [Base template recommends using]()
 
-[![image](https://file.iviewui.com/admin-dist/admin-preview.png)](https://github.com/BapiGso/SuspendedCenter/blob/main/poster/1.webp)
+[![image](https://github.com/BapiGso/SuspendedCenter/blob/main/poster/1.webp)](https://github.com/BapiGso/SuspendedCenter/blob/main/poster/1.webp)
 
 
 ## Getting started
