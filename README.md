@@ -12,7 +12,6 @@ SuspendedCenter
 [![](https://img.shields.io/badge/types-Flow%20%7C%20TypeScript-blue)]()
 [![](https://img.shields.io/badge/php-5.3%20--%207.4-blue)]()
 [![vue](https://img.shields.io/badge/vue-2.5.17-brightgreen.svg?style=flat-square)](https://github.com/vuejs/vue)
-[![iview ui](https://img.shields.io/badge/iview-3.2.2-brightgreen.svg?style=flat-square)]()
 [![npm](https://img.shields.io/npm/l/express.svg)]()
 
 ## Introduction
