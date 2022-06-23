@@ -24,23 +24,6 @@ SuspendedCenter
 [![image](https://github.com/BapiGso/SuspendedCenter/blob/main/poster/1.webp)](https://github.com/BapiGso/SuspendedCenter/blob/main/poster/1.webp)
 
 
-## Getting started
-```bush
-# clone the project
-git clone https://github.com/BapiGso/SuspendedCenter.git
-
-// install dependencies
-npm install
-
-// develop
-npm run dev
-```
-
-## Build
-```bush
-npm run build
-```
-
 ## License
 [MIT](http://opensource.org/licenses/MIT)
 
